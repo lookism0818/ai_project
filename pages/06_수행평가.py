@@ -9,79 +9,72 @@ st.set_page_config(
 
 st.title("🚔 전국 범죄 데이터 분석")
 
-# 파일 읽기
+# CSV 읽기
 df = pd.read_csv("lookism!!!!!!(1).csv", encoding="cp949")
 
+# 지역 컬럼
 region_cols = df.columns[2:]
 
-# 범죄별 합계
-crime_total = (
-    df.assign(합계=df[region_cols].sum(axis=1))
-      [["범죄중분류", "합계"]]
-      .sort_values("합계", ascending=False)
+# 범죄 총합 계산
+df["총범죄수"] = df[region_cols].sum(axis=1)
+
+# 지역 총합 계산
+region_total = df[region_cols].sum()
+
+tab1, tab2, tab3 = st.tabs(
+    ["범죄 TOP10", "지역 TOP10", "범죄별 지역분석"]
 )
 
-# 지역별 합계
-region_total = (
-    df[region_cols]
-    .sum()
-    .sort_values(ascending=False)
-    .reset_index()
-)
-
-region_total.columns = ["지역", "건수"]
-
-tab1, tab2, tab3 = st.tabs([
-    "범죄 TOP10",
-    "지역 TOP10",
-    "범죄별 지역 분석"
-])
-
-# --------------------
+# -----------------------
 # 범죄 TOP10
-# --------------------
+# -----------------------
 with tab1:
 
-    st.subheader("범죄 발생 TOP10")
-
-    top10 = crime_total.head(10)
+    crime_top10 = (
+        df[["범죄중분류", "총범죄수"]]
+        .sort_values("총범죄수", ascending=False)
+        .head(10)
+    )
 
     fig = px.bar(
-        top10,
+        crime_top10,
         x="범죄중분류",
-        y="합계",
-        text="합계",
-        color="합계"
+        y="총범죄수",
+        text="총범죄수"
     )
 
     st.plotly_chart(fig, use_container_width=True)
+    st.dataframe(crime_top10)
 
-    st.dataframe(top10)
-
-# --------------------
+# -----------------------
 # 지역 TOP10
-# --------------------
+# -----------------------
 with tab2:
 
-    st.subheader("범죄 발생 지역 TOP10")
+    region_df = (
+        region_total.reset_index()
+    )
 
-    top10_region = region_total.head(10)
+    region_df.columns = ["지역", "범죄수"]
+
+    region_df = region_df.sort_values(
+        "범죄수",
+        ascending=False
+    ).head(10)
 
     fig = px.bar(
-        top10_region,
+        region_df,
         x="지역",
-        y="건수",
-        text="건수",
-        color="건수"
+        y="범죄수",
+        text="범죄수"
     )
 
     st.plotly_chart(fig, use_container_width=True)
+    st.dataframe(region_df)
 
-    st.dataframe(top10_region)
-
-# --------------------
+# -----------------------
 # 범죄별 지역 분석
-# --------------------
+# -----------------------
 with tab3:
 
     crime = st.selectbox(
@@ -89,7 +82,9 @@ with tab3:
         df["범죄중분류"]
     )
 
-    selected = df[df["범죄중분류"] == crime]
+    selected = df[
+        df["범죄중분류"] == crime
+    ]
 
     region_data = (
         selected[region_cols]
@@ -104,16 +99,13 @@ with tab3:
         ascending=False
     )
 
-    st.subheader(f"{crime} 발생 지역 TOP10")
-
     fig = px.bar(
         region_data.head(10),
         x="지역",
         y="건수",
         text="건수",
-        color="건수"
+        title=f"{crime} 발생 지역 TOP10"
     )
 
     st.plotly_chart(fig, use_container_width=True)
-
     st.dataframe(region_data.head(10))
